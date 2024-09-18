@@ -31,10 +31,10 @@ def transform_input_agent(row):
     "type": "{type}",
     "pref_name": "{name}",
     "alt_name": [],
-    "gender": "{gender}",
-    {'"floruit_date": "",' if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "floruit" else ""}
-    {'"birth_date": "",' if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "birth" else ""}
-    {'"death_date": "",' if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "death" else ""}
+    {'"gender": "",' if pd.isnull(row["Gender"]) == False else ""}
+    {'"birth": "",' if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "birth" else ""}
+    {'"death": "",' if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "death" else ""}
+    {'"floruit": "",' if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "floruit" else ""}
     "rel_con": []}}'''
     
     # Load base JSON template into JSON object
@@ -48,24 +48,29 @@ def transform_input_agent(row):
          alt_names = alt_names + row["NS Name"].split(";")
     data["alt_name"] = [x.strip() for x in alt_names]
 
+    # Append gender if it exists
+
+    if pd.isnull(row["Gender"]) == False:
+         data["gender"] = gender
+ 
     # Check to see if there is a date normalized with before and after
-    if "/" in row["Dates.normalized"]:
-        not_before = row["Dates.normalized"].split("/")[0].rjust(4, "0")
-        not_after = row["Dates.normalized"].split("/")[1].rjust(4, "0")
+    if "/" in str(row["Dates.normalized"]):
+        not_before = str(row["Dates.normalized"]).split("/")[0].rjust(4, "0")
+        not_after = str(row["Dates.normalized"]).split("/")[1].rjust(4, "0")
         if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "floruit":
-             data["floruit_date"] = {"value": date, "iso": {"not_before": not_before, "not_after": not_after}}         
+             data["floruit"] = {"value": date, "iso": {"not_before": not_before, "not_after": not_after}}         
         if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "birth":
-             data["birth_date"] = {"value": date, "iso": {"not_before": not_before, "not_after": not_after}}
+             data["birth"] = {"value": date, "iso": {"not_before": not_before, "not_after": not_after}}
         if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "death":
-             data["death_date"] = {"value": date, "iso": {"not_before": not_before, "not_after": not_after}}        
+             data["death"] = {"value": date, "iso": {"not_before": not_before, "not_after": not_after}}        
     else:
-        not_before = row["Dates.normalized"].split("/")[0]
+        not_before = str(row["Dates.normalized"]).split("/")[0].rjust(4, "0")
         if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "floruit":
-             data["floruit_date"] = {"value": date, "iso": {"not_before": not_before}}         
+             data["floruit"] = {"value": date, "iso": {"not_before": not_before}}         
         if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "birth":
-             data["birth_date"] = {"value": date, "iso": {"not_before": not_before}}
+             data["birth"] = {"value": date, "iso": {"not_before": not_before}}
         if pd.isnull(row["Dates.type"]) == False and row["Dates.type"] == "death":
-             data["death_date"] = {"value": date, "iso": {"not_before": not_before}}     
+             data["death"] = {"value": date, "iso": {"not_before": not_before}}     
 
     # Check VIAF
     if pd.isnull(row["VIAF"]) == False:
@@ -101,7 +106,7 @@ def transform_input_work(row):
     
     
     if pd.isnull(row["Date.normalized"]) == False:
-        normalized_date = row["Date.normalized"]
+        normalized_date = str(row["Date.normalized"])
    
 
     
@@ -109,13 +114,14 @@ def transform_input_work(row):
     base_template_schema = f'''{{
     "ark": "{ark}",
     "pref_title": "{name}",
-    "orig_lang": "",
+    {'"orig_lang": "",' if pd.isnull(row["Original Language"]) == False else ""}
     {'"orig_lang_title": "",' if pd.isnull(row["Original Language Title"]) == False else ""}
     "alt_title": [],
     "genre": [],
     {'"creator": [],' if pd.isnull(row["Author"]) == False else ""}
-    {'"creation_date": [],' if pd.isnull(row["Date.normalized"]) == False else ""}
+    {'"creation": [],' if pd.isnull(row["Date.normalized"]) == False else ""}
     "rel_con": [],
+    "refno": [],
     "bib": []
 
      }}''' 
@@ -162,17 +168,17 @@ def transform_input_work(row):
 
     # Add CPG fields
     if pd.isnull(row["CPG"]) == False:
-         data["refno"] = [{"label": row['Title.CPG'], "idno": str(int(row["CPG"])), "source": "CPG"}]
+         data["refno"] = [{"label": row['Title.CPG'], "idno": row["CPG"], "source": "CPG"}]
          
          
      # Add dates
     if "/" in normalized_date:
         not_before = normalized_date.split("/")[0].rjust(4, "0")
         not_after = normalized_date.split("/")[1].rjust(4, "0")
-        data["creation_date"] = {"value": row["Date.creation"], "iso": {"not_before": not_before, "not_after": not_after}}         
+        data["creation"] = {"value": row["Date.creation"], "iso": {"not_before": not_before, "not_after": not_after}}         
     elif normalized_date:
-        not_before = normalized_date.split("/")[0]
-        data["creation_date"] = {"value": row["Date.creation"], "iso": {"not_before": not_before}}   
+        not_before = normalized_date.split("/")[0].rjust(4, "0")
+        data["creation"] = {"value": row["Date.creation"], "iso": {"not_before": not_before}}   
 
     # Check author role
     if pd.isnull(row["Author"]) == False:
@@ -188,7 +194,7 @@ def transform_input_work(row):
     
 # Check to see if user entered path to csv file and valid command line argument
 try:
-    csv_file = pd.read_csv(sys.argv[1])
+    csv_file = pd.read_csv(sys.argv[1], dtype={'CPG': 'string'}) # explicitly declaring CPG as string data to avoid handling as a number
     type = sys.argv[2]
     if type not in ["agents", "works"]:
             raise ValueError
